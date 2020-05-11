@@ -3,6 +3,7 @@ package envparser
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"strings"
@@ -11,13 +12,23 @@ import (
 const (
 	commentToken = "#"
 	kvSeparator  = "="
-	secretRegex  = `^${(?P<secretval>.+)}$`
+	secretRegex  = `^\${(?P<secretval>.+)}$`
 )
 
 var secretRe *regexp.Regexp
 
 func init() {
 	secretRe = regexp.MustCompile(secretRegex)
+}
+
+type fsWrapper interface {
+	Open(path string) (io.ReadCloser, error)
+}
+
+type osFS struct{}
+
+func (o *osFS) Open(path string) (io.ReadCloser, error) {
+	return os.Open(path)
 }
 
 //EnvVars contains the plain text key value mappings as well as the encrypted secret key value mappings
@@ -30,7 +41,11 @@ type EnvVars struct {
 //ParseFile parses a .env file at path and returns the key value
 //mappings for plain text variables and secret variables
 func ParseFile(path string) (*EnvVars, error) {
-	f, err := os.Open(path)
+	return parseFile(&osFS{}, path)
+}
+
+func parseFile(fs fsWrapper, path string) (*EnvVars, error) {
+	f, err := fs.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("error opening file %s: %s", path, err)
 	}
@@ -56,8 +71,14 @@ func ParseFile(path string) (*EnvVars, error) {
 }
 
 func parseLine(envVars *EnvVars, l string) error {
+	l = strings.TrimSpace(l)
+	//ignore empty lines
+	if l == "" {
+		return nil
+	}
+
 	//ignore commented line
-	//TODO: remove inline comments
+	//TODO: ignore inline comments
 	if strings.HasPrefix(l, commentToken) {
 		return nil
 	}
@@ -65,12 +86,15 @@ func parseLine(envVars *EnvVars, l string) error {
 	//split line into two pieces (k,v) based on key value seperator
 	splits := strings.SplitN(l, kvSeparator, 2)
 	if len(splits) != 2 {
-		return fmt.Errorf("invalid format %s", l)
+		return fmt.Errorf("invalid format %q", l)
 	}
 
 	//key is first index, value is second
 	k := strings.TrimSpace(splits[0])
 	v := strings.TrimSpace(splits[1])
+	if k == "" {
+		return fmt.Errorf("invalid format %q", l)
+	}
 
 	//check if value is encrypted secret
 	if secretRe.MatchString(v) {

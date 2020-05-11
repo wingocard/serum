@@ -1,0 +1,4 @@
+steps:
+    #Run tests
+    - name: 'golang:1.14'
+      args: ['go', 'test', '-v', './...']

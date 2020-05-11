@@ -71,3 +71,8 @@ func main() {
     ev := os.Getenv("myKey")
 }
 ```
+
+## Running Tests
+
+Run all tests using the Makefile:
+`make tests`
