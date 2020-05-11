@@ -70,7 +70,7 @@ func TestParseFile(t *testing.T) {
 			name: "plain and secrets",
 			envFile: `
 				PLAIN=plaintext
-				SECRET=${keep it secret, keep it safe}
+				SECRET=!{keep it secret, keep it safe}
 			`,
 			plain: map[string]string{
 				"PLAIN": "plaintext",
@@ -84,7 +84,7 @@ func TestParseFile(t *testing.T) {
 			envFile: `
 				#yoyo
 				PLAIN=plaintext
-				SECRET=${keep it secret, keep it safe}
+				SECRET=!{keep it secret, keep it safe}
 			`,
 			plain: map[string]string{
 				"PLAIN": "plaintext",
@@ -97,7 +97,7 @@ func TestParseFile(t *testing.T) {
 			name: "only secrets and comments",
 			envFile: `
 				#yoyo
-				SECRET=${keep it secret, keep it safe}
+				SECRET=!{keep it secret, keep it safe}
 			`,
 			plain: map[string]string{},
 			secrets: map[string]string{
@@ -107,7 +107,7 @@ func TestParseFile(t *testing.T) {
 		{
 			name: "only secrets",
 			envFile: `
-				SECRET_PASSWORD=${is it the red or the white?}
+				SECRET_PASSWORD=!{is it the red or the white?}
 			`,
 			plain: map[string]string{},
 			secrets: map[string]string{
@@ -161,6 +161,13 @@ func TestParseFileError(t *testing.T) {
 		{
 			name:        "only kv seperator",
 			envFile:     kvSeparator,
+			expectedErr: errors.New("invalid format"),
+		},
+		{
+			name: "empty secret",
+			envFile: `
+				SECRET=!{}
+			`,
 			expectedErr: errors.New("invalid format"),
 		},
 	}

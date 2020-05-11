@@ -14,11 +14,11 @@ This helps us solve two major different problems:
 #Example .env file
 KEY=value
 NAME=Oberyn Martell
-SECRET=${secret-identifier}
+SECRET=!{secret-identifier}
 ```
 
 ### Secrets
-Secrets are denoted in a `.env` file by surrounding the identifier with `${}`.
+Secrets are denoted in a `.env` file by surrounding the identifier with `!{}`.
 Serum will pass this identifer to the specified `SecretProvider` for decryption. If the decryption is successful,
 the value will be injected into the running process' environment using the specified key.
 

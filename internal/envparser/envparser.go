@@ -12,7 +12,8 @@ import (
 const (
 	commentToken = "#"
 	kvSeparator  = "="
-	secretRegex  = `^\${(?P<secretval>.+)}$`
+	secretRegex  = `^!{(?P<secretval>.+)}$`
+	emptySecret  = "!{}"
 )
 
 var secretRe *regexp.Regexp
@@ -92,7 +93,7 @@ func parseLine(envVars *EnvVars, l string) error {
 	//key is first index, value is second
 	k := strings.TrimSpace(splits[0])
 	v := strings.TrimSpace(splits[1])
-	if k == "" {
+	if k == "" || v == emptySecret {
 		return fmt.Errorf("invalid format %q", l)
 	}
 
