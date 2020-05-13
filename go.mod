@@ -1,4 +1,4 @@
-module wingocard/serum
+module github.com/wingocard/serum
 
 go 1.14
 

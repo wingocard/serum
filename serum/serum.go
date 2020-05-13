@@ -3,8 +3,9 @@ package serum
 import (
 	"fmt"
 	"os"
-	"wingocard/serum/internal/envparser"
-	"wingocard/serum/secretprovider"
+
+	"github.com/wingocard/serum/internal/envparser"
+	"github.com/wingocard/serum/secretprovider"
 )
 
 //Injector injects environment variables into the current running process. Key/value pairs can

@@ -4,7 +4,8 @@ import (
 	"errors"
 	"os"
 	"testing"
-	"wingocard/serum/internal/envparser"
+
+	"github.com/wingocard/serum/internal/envparser"
 
 	. "github.com/onsi/gomega"
 )
