@@ -8,13 +8,13 @@ import (
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 )
 
-//GSManager is a secret provider that communicates with Google Cloud Platform's Secret Manager
-//to decrypt secrets. Internally it uses the Google Cloud SDK.
+// GSManager is a secret provider that communicates with Google Cloud Platform's Secret Manager
+// to decrypt secrets. Internally it uses the Google Cloud SDK.
 type GSManager struct {
 	smClient *secretmanager.Client
 }
 
-//NewGSManager return's an initialized GSManager using a new secret manager client.
+// NewGSManager return's an initialized GSManager using a new secret manager client.
 func NewGSManager() (*GSManager, error) {
 	c, err := secretmanager.NewClient(context.Background())
 	if err != nil {
@@ -24,7 +24,7 @@ func NewGSManager() (*GSManager, error) {
 	return &GSManager{smClient: c}, nil
 }
 
-//Decrypt will access the secret on GCP Secret Manager and return the plain text string.
+// Decrypt will access the secret on GCP Secret Manager and return the plain text string.
 func (g *GSManager) Decrypt(secret string) (string, error) {
 	req := &secretmanagerpb.AccessSecretVersionRequest{
 		Name: secret,
@@ -38,7 +38,7 @@ func (g *GSManager) Decrypt(secret string) (string, error) {
 	return result.Payload.String(), nil
 }
 
-//Close closes the connection to the secret manager API.
+// Close closes the connection to the secret manager API.
 func (g *GSManager) Close() error {
 	return g.smClient.Close()
 }

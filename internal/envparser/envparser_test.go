@@ -114,6 +114,16 @@ func TestParseFile(t *testing.T) {
 				"SECRET_PASSWORD": "is it the red or the white?",
 			},
 		},
+		{
+			name: "= in value",
+			envFile: `
+				EQUAL=1+1=3
+			`,
+			plain: map[string]string{
+				"EQUAL": "1+1=3",
+			},
+			secrets: map[string]string{},
+		},
 	}
 
 	for _, tc := range tt {

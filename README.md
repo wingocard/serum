@@ -38,8 +38,8 @@ package main
 import (
     "os"
 
-    "wingocard/serum"
-    "wingocard/serum/secretprovider"
+    "github.com/wingocard/serum"
+    "github.com/wingocard/serum/secretprovider"
 )
 
 func main() {
