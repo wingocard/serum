@@ -1,5 +1,7 @@
 # Serum
 
+> NOTE: Serum is still pre v1.0, the API is still evolving and breaking changes can occur
+
 Serum is a library that facilitates injecting environment variables and secrets into your application at run time.
 It can load the key/value pairs from a `.env` file and it can use a `SecretProvider` to decrypt the secrets that
 are included in the `.env` file.

@@ -158,3 +158,43 @@ func TestInjectDecryptError(t *testing.T) {
 	g.Expect(err).ToNot(BeNil())
 	g.Expect(err.Error()).To(ContainSubstring("serum: error decrypting secret"))
 }
+
+func TestHasSecrets(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	tt := []struct {
+		name     string
+		env      *envparser.EnvVars
+		expected bool
+	}{
+		{
+			name: "no secrets",
+			env: &envparser.EnvVars{
+				Plain: map[string]string{
+					"PLAIN": "123456",
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "with secrets",
+			env: &envparser.EnvVars{
+				Plain: map[string]string{
+					"PLAIN": "123456",
+				},
+				Secrets: map[string]string{
+					"SECRET": "superSecret111",
+				},
+			},
+			expected: true,
+		},
+	}
+
+	for _, tc := range tt {
+		ij := &Injector{
+			envVars: tc.env,
+		}
+
+		g.Expect(ij.HasSecrets()).To(Equal(tc.expected))
+	}
+}

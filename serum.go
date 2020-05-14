@@ -55,3 +55,9 @@ func (in *Injector) Load(path string) error {
 	in.envVars = envVars
 	return nil
 }
+
+// HasSecrets returns true if the injector contains encrypted
+// secrets, false otherwise.
+func (in *Injector) HasSecrets() bool {
+	return len(in.envVars.Secrets) > 0
+}
