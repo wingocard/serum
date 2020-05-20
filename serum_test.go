@@ -43,7 +43,7 @@ func (ts *testSecretProvider) Close() error {
 }
 
 func TestInject(t *testing.T) {
-	g := NewGomegaWithT(t)
+	g := NewWithT(t)
 
 	decryptedSecret := "my secret value"
 	envVars := &envparser.EnvVars{
@@ -104,7 +104,7 @@ func TestInjectEnvError(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			g := NewGomegaWithT(t)
+			g := NewWithT(t)
 
 			ij := &Injector{
 				envVars: tc.env,
@@ -121,7 +121,7 @@ func TestInjectEnvError(t *testing.T) {
 }
 
 func TestInjectNilSecretProviderError(t *testing.T) {
-	g := NewGomegaWithT(t)
+	g := NewWithT(t)
 
 	envVars := &envparser.EnvVars{
 		Secrets: map[string]string{
@@ -139,7 +139,7 @@ func TestInjectNilSecretProviderError(t *testing.T) {
 }
 
 func TestInjectDecryptError(t *testing.T) {
-	g := NewGomegaWithT(t)
+	g := NewWithT(t)
 
 	envVars := &envparser.EnvVars{
 		Secrets: map[string]string{
@@ -160,7 +160,7 @@ func TestInjectDecryptError(t *testing.T) {
 }
 
 func TestHasSecrets(t *testing.T) {
-	g := NewGomegaWithT(t)
+	g := NewWithT(t)
 
 	tt := []struct {
 		name     string

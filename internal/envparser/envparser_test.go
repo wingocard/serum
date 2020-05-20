@@ -128,13 +128,13 @@ func TestParseFile(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			g := NewGomegaWithT(t)
+			g := NewWithT(t)
 
 			retVal := ioutil.NopCloser(bytes.NewBufferString(tc.envFile))
 			tfs := &testFS{returnVal: retVal}
+
 			env, err := parseFile(tfs, "")
 			g.Expect(err).To(BeNil())
-
 			g.Expect(env).ToNot(BeNil())
 			g.Expect(env.Plain).To(Equal(tc.plain))
 			g.Expect(env.Secrets).To(Equal(tc.secrets))
@@ -184,7 +184,7 @@ func TestParseFileError(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			g := NewGomegaWithT(t)
+			g := NewWithT(t)
 
 			tfs := &testFS{
 				returnVal: ioutil.NopCloser(bytes.NewBufferString(tc.envFile)),
@@ -193,7 +193,6 @@ func TestParseFileError(t *testing.T) {
 
 			env, err := parseFile(tfs, "")
 			g.Expect(env).To(BeNil())
-
 			g.Expect(err).ToNot(BeNil())
 			g.Expect(err.Error()).To(ContainSubstring(tc.expectedErr.Error()))
 		})
@@ -201,12 +200,12 @@ func TestParseFileError(t *testing.T) {
 }
 
 func TestParseFileScannerError(t *testing.T) {
-	g := NewGomegaWithT(t)
+	g := NewWithT(t)
 
 	tfs := &testFS{returnVal: &badReadCloser{}}
+
 	env, err := parseFile(tfs, "")
 	g.Expect(env).To(BeNil())
-
 	g.Expect(err).ToNot(BeNil())
 	g.Expect(err.Error()).To(ContainSubstring("error parsing file"))
 }

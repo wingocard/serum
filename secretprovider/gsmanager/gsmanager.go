@@ -1,21 +1,27 @@
-package secretprovider
+package gsmanager
 
 import (
 	"context"
 	"fmt"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
+	"github.com/googleapis/gax-go/v2"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 )
+
+type secretManagerClient interface {
+	AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
+	Close() error
+}
 
 // GSManager is a secret provider that communicates with Google Cloud Platform's Secret Manager
 // to decrypt secrets. Internally it uses the Google Cloud SDK.
 type GSManager struct {
-	smClient *secretmanager.Client
+	smClient secretManagerClient
 }
 
-// NewGSManager return's an initialized GSManager using a new secret manager client.
-func NewGSManager() (*GSManager, error) {
+// New return's an initialized GSManager using a new secret manager client.
+func New() (*GSManager, error) {
 	c, err := secretmanager.NewClient(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("gsmanager: failed to initialize client: %w", err)
@@ -35,7 +41,7 @@ func (g *GSManager) Decrypt(secret string) (string, error) {
 		return "", fmt.Errorf("gsmanager: failed to access secret version: %w", err)
 	}
 
-	return result.Payload.String(), nil
+	return string(result.Payload.Data), nil
 }
 
 // Close closes the connection to the secret manager API.

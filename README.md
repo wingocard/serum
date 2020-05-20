@@ -41,12 +41,12 @@ import (
     "os"
 
     "github.com/wingocard/serum"
-    "github.com/wingocard/serum/secretprovider"
+    "github.com/wingocard/serum/secretprovider/gsmanager"
 )
 
 func main() {
     //create a new secret provider
-    gsm, err := secretprovider.NewGSManager()
+    gsm, err := gsmanager.New()
     if err != nil {
         //...
     }
