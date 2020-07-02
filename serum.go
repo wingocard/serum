@@ -44,7 +44,7 @@ func (in *Injector) Inject() error {
 	return nil
 }
 
-// Load will parse a .env file for key/value pairs and prepair them to be injected using the
+// Load will parse a .env file for key/value pairs and prepare them to be injected using the
 // Inject method.
 func (in *Injector) Load(path string) error {
 	envVars, err := envparser.ParseFile(path)

@@ -169,7 +169,7 @@ func TestParseFileError(t *testing.T) {
 			expectedErr: errors.New("invalid format"),
 		},
 		{
-			name:        "only kv seperator",
+			name:        "only kv separator",
 			envFile:     kvSeparator,
 			expectedErr: errors.New("invalid format"),
 		},

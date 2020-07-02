@@ -135,7 +135,8 @@ func TestInjectNilSecretProviderError(t *testing.T) {
 
 	err := ij.Inject()
 	g.Expect(err).ToNot(BeNil())
-	g.Expect(err.Error()).To(ContainSubstring("serum: error injecting env vars: secrets were loaded but the SecretProvider is nil"))
+	g.Expect(err.Error()).
+		To(ContainSubstring("serum: error injecting env vars: secrets were loaded but the SecretProvider is nil"))
 }
 
 func TestInjectDecryptError(t *testing.T) {

@@ -1,0 +1,54 @@
+run:
+    timeout: 1m
+    issues-exit-code: 1
+    tests: true
+    skip-dirs:
+        - build
+        - docs
+        - configs
+    skip-dirs-use-default: true
+
+output:
+    format: colored-line-number
+    print-issued-lines: true
+    print-linter-name: true
+    uniq-by-line: true
+
+linters:
+    disable-all: true
+    enable:
+        - bodyclose
+        - deadcode
+        - dogsled
+        - dupl
+        - errcheck
+        - goconst
+        - gocyclo
+        - gofmt
+        - goimports
+        - golint
+        - gomnd
+        - goprintffuncname
+        - gosec
+        - gosimple
+        - govet
+        - ineffassign
+        - interfacer
+        - lll
+        - misspell
+        - nakedret
+        - nolintlint
+        - rowserrcheck
+        - staticcheck
+        - structcheck
+        - stylecheck
+        - typecheck
+        - unconvert
+        - unparam
+        - unused
+        - varcheck
+        - whitespace
+
+linters-settings:
+    errcheck:
+        check-blank: true

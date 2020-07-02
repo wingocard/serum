@@ -10,7 +10,8 @@ import (
 )
 
 type secretManagerClient interface {
-	AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
+	AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest,
+		opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
 	Close() error
 }
 

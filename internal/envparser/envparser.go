@@ -10,10 +10,11 @@ import (
 )
 
 const (
-	commentToken = "#"
-	kvSeparator  = "="
-	secretRegex  = `^!{(?P<secretval>.+)}$`
-	emptySecret  = "!{}"
+	commentToken  = "#"
+	kvSeparator   = "="
+	secretRegex   = `^!{(?P<secretval>.+)}$` //nolint:gosec
+	emptySecret   = "!{}"
+	kvSplitLength = 2
 )
 
 var secretRe *regexp.Regexp
@@ -84,9 +85,9 @@ func parseLine(envVars *EnvVars, l string) error {
 		return nil
 	}
 
-	// split line into two pieces (k,v) based on key value seperator
-	splits := strings.SplitN(l, kvSeparator, 2)
-	if len(splits) != 2 {
+	// split line into two pieces (k,v) based on key value separator
+	splits := strings.SplitN(l, kvSeparator, kvSplitLength)
+	if len(splits) != kvSplitLength {
 		return fmt.Errorf("invalid format %q", l)
 	}
 

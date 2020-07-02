@@ -16,7 +16,8 @@ type testClient struct {
 	closeCalled               bool
 }
 
-func (tc *testClient) AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
+func (tc *testClient) AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest,
+	opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
 	tc.accessSecretVersionCalled = true
 	if tc.accessSecretReturnError != nil {
 		return nil, tc.accessSecretReturnError
