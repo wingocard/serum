@@ -38,6 +38,7 @@ A list of secret stores currently supported:
 package main
 
 import (
+    "context"
     "os"
 
     "github.com/wingocard/serum"
@@ -46,7 +47,7 @@ import (
 
 func main() {
     //create a new secret provider
-    gsm, err := gsmanager.New()
+    gsm, err := gsmanager.New(context.Background())
     if err != nil {
         //...
     }
@@ -65,7 +66,7 @@ func main() {
     }
 
     //Inject the serum...
-    if err := ij.Inject(); err != nil {
+    if err := ij.Inject(context.Background()); err != nil {
         //...
     }
 

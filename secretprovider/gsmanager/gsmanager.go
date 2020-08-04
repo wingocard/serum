@@ -22,8 +22,8 @@ type GSManager struct {
 }
 
 // New return's an initialized GSManager using a new secret manager client.
-func New() (*GSManager, error) {
-	c, err := secretmanager.NewClient(context.Background())
+func New(ctx context.Context) (*GSManager, error) {
+	c, err := secretmanager.NewClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("gsmanager: failed to initialize client: %w", err)
 	}
@@ -32,12 +32,12 @@ func New() (*GSManager, error) {
 }
 
 // Decrypt will access the secret on GCP Secret Manager and return the plain text string.
-func (g *GSManager) Decrypt(secret string) (string, error) {
+func (g *GSManager) Decrypt(ctx context.Context, secret string) (string, error) {
 	req := &secretmanagerpb.AccessSecretVersionRequest{
 		Name: secret,
 	}
 
-	result, err := g.smClient.AccessSecretVersion(context.Background(), req)
+	result, err := g.smClient.AccessSecretVersion(ctx, req)
 	if err != nil {
 		return "", fmt.Errorf("gsmanager: failed to access secret version: %w", err)
 	}

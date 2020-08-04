@@ -48,7 +48,7 @@ func TestDecrypt(t *testing.T) {
 		smClient: tc,
 	}
 
-	dec, err := gsm.Decrypt(secretIdentifier)
+	dec, err := gsm.Decrypt(context.Background(), secretIdentifier)
 	g.Expect(err).To(BeNil())
 	g.Expect(tc.accessSecretVersionCalled).To(BeTrue())
 	g.Expect(dec).To(Equal(string(decrypted)))

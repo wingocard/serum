@@ -1,6 +1,7 @@
 package serum
 
 import (
+	"context"
 	"errors"
 	"os"
 	"testing"
@@ -30,7 +31,7 @@ type testSecretProvider struct {
 	returnErr    error
 }
 
-func (ts *testSecretProvider) Decrypt(secret string) (string, error) {
+func (ts *testSecretProvider) Decrypt(ctx context.Context, secret string) (string, error) {
 	if ts.returnErr != nil {
 		return "", ts.returnErr
 	}
@@ -68,7 +69,7 @@ func TestInject(t *testing.T) {
 		},
 	}
 
-	err := ij.Inject()
+	err := ij.Inject(context.Background())
 	g.Expect(err).To(BeNil())
 
 	for k, v := range envVars.Plain {
@@ -113,7 +114,7 @@ func TestInjectEnvError(t *testing.T) {
 				},
 			}
 
-			err := ij.Inject()
+			err := ij.Inject(context.Background())
 			g.Expect(err).ToNot(BeNil())
 			g.Expect(err.Error()).To(ContainSubstring("serum: error setting env var"))
 		})
@@ -133,7 +134,7 @@ func TestInjectNilSecretProviderError(t *testing.T) {
 		envVars: envVars,
 	}
 
-	err := ij.Inject()
+	err := ij.Inject(context.Background())
 	g.Expect(err).ToNot(BeNil())
 	g.Expect(err.Error()).
 		To(ContainSubstring("serum: error injecting env vars: secrets were loaded but the SecretProvider is nil"))
@@ -155,7 +156,7 @@ func TestInjectDecryptError(t *testing.T) {
 		},
 	}
 
-	err := ij.Inject()
+	err := ij.Inject(context.Background())
 	g.Expect(err).ToNot(BeNil())
 	g.Expect(err.Error()).To(ContainSubstring("serum: error decrypting secret"))
 }

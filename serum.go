@@ -1,6 +1,7 @@
 package serum
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -16,16 +17,16 @@ type Injector struct {
 }
 
 // Inject will inject the loaded environment variables into the current running process' environment.
-// Any secret values found will attempt to be decrypted using the provided secret provider.
+// Any secret values found will attempt to be decrypted using the provided SecretProvider.
 // The presence of secrets with a nil SecretProvider will return an error.
-func (in *Injector) Inject() error {
+func (in *Injector) Inject(ctx context.Context) error {
 	if len(in.envVars.Secrets) > 0 && in.SecretProvider == nil {
 		return fmt.Errorf("serum: error injecting env vars: secrets were loaded but the SecretProvider is nil")
 	}
 
 	// inject secrets
 	for k, v := range in.envVars.Secrets {
-		decrypted, err := in.SecretProvider.Decrypt(v)
+		decrypted, err := in.SecretProvider.Decrypt(ctx, v)
 		if err != nil {
 			return fmt.Errorf("serum: error decrypting secret %s: %s", v, err)
 		}
