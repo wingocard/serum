@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/googleapis/gax-go/v2"
-	. "github.com/onsi/gomega"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
+	"gotest.tools/v3/assert"
 )
 
 type testClient struct {
@@ -32,15 +32,13 @@ func (tc *testClient) Close() error {
 }
 
 func TestDecrypt(t *testing.T) {
-	g := NewWithT(t)
-
 	secretIdentifier := "my/super/secret/versions/latest"
-	decrypted := []byte("superSecret")
+	decrypted := "superSecret"
 	tc := &testClient{
 		accessSecretVersionReturn: &secretmanagerpb.AccessSecretVersionResponse{
 			Name: secretIdentifier,
 			Payload: &secretmanagerpb.SecretPayload{
-				Data: decrypted,
+				Data: []byte(decrypted),
 			},
 		},
 	}
@@ -49,20 +47,18 @@ func TestDecrypt(t *testing.T) {
 	}
 
 	dec, err := gsm.Decrypt(context.Background(), secretIdentifier)
-	g.Expect(err).To(BeNil())
-	g.Expect(tc.accessSecretVersionCalled).To(BeTrue())
-	g.Expect(dec).To(Equal(string(decrypted)))
+	assert.NilError(t, err)
+	assert.Equal(t, tc.accessSecretVersionCalled, true)
+	assert.Equal(t, dec, decrypted)
 }
 
 func TestClose(t *testing.T) {
-	g := NewWithT(t)
-
 	tc := &testClient{}
 	gsm := &GSManager{
 		smClient: tc,
 	}
 
 	err := gsm.Close()
-	g.Expect(err).To(BeNil())
-	g.Expect(tc.closeCalled).To(BeTrue())
+	assert.NilError(t, err)
+	assert.Equal(t, tc.closeCalled, true)
 }

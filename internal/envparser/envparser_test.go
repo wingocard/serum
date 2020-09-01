@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	. "github.com/onsi/gomega"
+	"gotest.tools/v3/assert"
 )
 
 type testFS struct {
@@ -128,16 +128,14 @@ func TestParseFile(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			g := NewWithT(t)
-
 			retVal := ioutil.NopCloser(bytes.NewBufferString(tc.envFile))
 			tfs := &testFS{returnVal: retVal}
 
 			env, err := parseFile(tfs, "")
-			g.Expect(err).To(BeNil())
-			g.Expect(env).ToNot(BeNil())
-			g.Expect(env.Plain).To(Equal(tc.plain))
-			g.Expect(env.Secrets).To(Equal(tc.secrets))
+			assert.NilError(t, err)
+			assert.Assert(t, env != nil)
+			assert.DeepEqual(t, env.Plain, tc.plain)     //nolint:staticheck
+			assert.DeepEqual(t, env.Secrets, tc.secrets) //nolint:staticheck
 		})
 	}
 }
@@ -184,28 +182,24 @@ func TestParseFileError(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			g := NewWithT(t)
-
 			tfs := &testFS{
 				returnVal: ioutil.NopCloser(bytes.NewBufferString(tc.envFile)),
 				returnErr: tc.returnErr,
 			}
 
 			env, err := parseFile(tfs, "")
-			g.Expect(env).To(BeNil())
-			g.Expect(err).ToNot(BeNil())
-			g.Expect(err.Error()).To(ContainSubstring(tc.expectedErr.Error()))
+			assert.Assert(t, env == nil)
+			assert.Assert(t, err != nil)
+			assert.ErrorContains(t, err, tc.expectedErr.Error())
 		})
 	}
 }
 
 func TestParseFileScannerError(t *testing.T) {
-	g := NewWithT(t)
-
 	tfs := &testFS{returnVal: &badReadCloser{}}
 
 	env, err := parseFile(tfs, "")
-	g.Expect(env).To(BeNil())
-	g.Expect(err).ToNot(BeNil())
-	g.Expect(err.Error()).To(ContainSubstring("error parsing file"))
+	assert.Assert(t, env == nil)
+	assert.Assert(t, err != nil)
+	assert.ErrorContains(t, err, "error parsing file")
 }
