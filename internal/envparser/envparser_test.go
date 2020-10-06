@@ -124,6 +124,30 @@ func TestParseFile(t *testing.T) {
 			},
 			secrets: map[string]string{},
 		},
+		{
+			name: "multiline variables",
+			envFile: `
+				PLAIN=plaintext
+				JWT_KEY="-----BEGIN PUBLIC KEY-----
+MIGbMBAGByqGSM49AgEGBSuBBAAjA4GGAAQAC6vH7IGAp8pdUt92yiDGKt9mAwN3
+TRT3ZSQfIk/68btXJRMBz1yqTYdjjmruG/H9uGq4N4g++djUb3k18Ep0MbsB6g+7
+Dpig7Mu3Nqf3ywLsiXf1EiffYsrkUouWsjTnIYf800jl/JHHB0Gkn24td8aahE8v
+5fK56W2mjskKKKCZnMc=
+-----END PUBLIC KEY-----"
+				PLAIN2=plaintext2
+			`,
+			plain: map[string]string{
+				"PLAIN":  "plaintext",
+				"PLAIN2": "plaintext2",
+				"JWT_KEY": `-----BEGIN PUBLIC KEY-----
+MIGbMBAGByqGSM49AgEGBSuBBAAjA4GGAAQAC6vH7IGAp8pdUt92yiDGKt9mAwN3
+TRT3ZSQfIk/68btXJRMBz1yqTYdjjmruG/H9uGq4N4g++djUb3k18Ep0MbsB6g+7
+Dpig7Mu3Nqf3ywLsiXf1EiffYsrkUouWsjTnIYf800jl/JHHB0Gkn24td8aahE8v
+5fK56W2mjskKKKCZnMc=
+-----END PUBLIC KEY-----`,
+			},
+			secrets: map[string]string{},
+		},
 	}
 
 	for _, tc := range tt {

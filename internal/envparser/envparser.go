@@ -58,10 +58,11 @@ func parseFile(fs fsWrapper, path string) (*EnvVars, error) {
 		Secrets: make(map[string]string),
 	}
 
+	var lp lineParser
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if err := parseLine(envVars, line); err != nil {
+		if err := lp.parse(envVars, line); err != nil {
 			return nil, fmt.Errorf("error parsing line: %s: %s", line, err)
 		}
 	}
@@ -72,7 +73,13 @@ func parseFile(fs fsWrapper, path string) (*EnvVars, error) {
 	return envVars, nil
 }
 
-func parseLine(envVars *EnvVars, l string) error {
+type lineParser struct {
+	multiline bool
+	key       string
+	value     string
+}
+
+func (p *lineParser) parse(envVars *EnvVars, l string) error {
 	l = strings.TrimSpace(l)
 	// ignore empty lines
 	if l == "" {
@@ -82,6 +89,19 @@ func parseLine(envVars *EnvVars, l string) error {
 	// ignore commented line
 	// TODO: ignore inline comments
 	if strings.HasPrefix(l, commentToken) {
+		return nil
+	}
+
+	// handle multiline variables
+	if p.multiline {
+		// check if it's the end of a multiline var
+		if strings.HasSuffix(l, `"`) {
+			p.value += strings.TrimSuffix(l, `"`)
+			p.multiline = false
+			envVars.Plain[p.key] = p.value
+			return nil
+		}
+		p.value += fmt.Sprintf("%s\n", l)
 		return nil
 	}
 
@@ -102,6 +122,14 @@ func parseLine(envVars *EnvVars, l string) error {
 	if secretRe.MatchString(v) {
 		// fill in secret value - replace template value with capture group "secretval"
 		envVars.Secrets[k] = secretRe.ReplaceAllString(v, "$secretval")
+		return nil
+	}
+
+	// check if value is the beginning of a multiline variable
+	if strings.HasPrefix(v, `"`) && !strings.HasSuffix(v, `"`) {
+		p.multiline = true
+		p.key = k
+		p.value = fmt.Sprintf("%s\n", strings.TrimPrefix(v, `"`))
 		return nil
 	}
 
