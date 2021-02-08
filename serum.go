@@ -57,6 +57,16 @@ func (in *Injector) Load(path string) error {
 	return nil
 }
 
+func (in *Injector) LoadMap(envValues map[string]string) error {
+	envVars, err := envparser.ParseMap(envValues)
+	if err != nil {
+		return fmt.Errorf("serum: error loading env vars: %s", err)
+	}
+
+	in.envVars = envVars
+	return nil
+}
+
 // HasSecrets returns true if the injector contains encrypted
 // secrets, false otherwise.
 func (in *Injector) HasSecrets() bool {
