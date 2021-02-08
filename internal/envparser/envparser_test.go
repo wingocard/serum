@@ -223,7 +223,6 @@ func TestParseFileError(t *testing.T) {
 
 			env, err := parseFile(tfs, "")
 			assert.Assert(t, env == nil)
-			assert.Assert(t, err != nil)
 			assert.ErrorContains(t, err, tc.expectedErr.Error())
 		})
 	}
@@ -234,6 +233,97 @@ func TestParseFileScannerError(t *testing.T) {
 
 	env, err := parseFile(tfs, "")
 	assert.Assert(t, env == nil)
-	assert.Assert(t, err != nil)
 	assert.ErrorContains(t, err, "error parsing file")
+}
+
+func TestParseMap(t *testing.T) {
+	tt := []struct {
+		name            string
+		envValues       map[string]string
+		expectedPlain   map[string]string
+		expectedSecrets map[string]string
+		expectedErr     error
+	}{
+		{
+			name:            "nil map",
+			envValues:       nil,
+			expectedPlain:   map[string]string{},
+			expectedSecrets: map[string]string{},
+			expectedErr:     nil,
+		},
+		{
+			name: "no key",
+			envValues: map[string]string{
+				"": "nope",
+			},
+			expectedPlain:   map[string]string{},
+			expectedSecrets: map[string]string{},
+			expectedErr:     errors.New("invalid format"),
+		},
+		{
+			name: "empty secret",
+			envValues: map[string]string{
+				"SECRET": "!{}",
+			},
+			expectedPlain:   map[string]string{},
+			expectedSecrets: map[string]string{},
+			expectedErr:     errors.New("invalid format"),
+		},
+		{
+			name: "only plain values",
+			envValues: map[string]string{
+				"ONE":   "two",
+				"THREE": "four",
+			},
+			expectedPlain: map[string]string{
+				"ONE":   "two",
+				"THREE": "four",
+			},
+			expectedSecrets: map[string]string{},
+			expectedErr:     nil,
+		},
+		{
+			name: "only secret values",
+			envValues: map[string]string{
+				"PASSWORD": "!{super secret}",
+				"CODES":    "!{upupdowndownleftrightleftrightBA}",
+			},
+			expectedPlain: map[string]string{},
+			expectedSecrets: map[string]string{
+				"PASSWORD": "super secret",
+				"CODES":    "upupdowndownleftrightleftrightBA",
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "plain and secret values",
+			envValues: map[string]string{
+				"HELLO": "goodbye",
+				"CODES": "!{upupdowndownleftrightleftrightBA}",
+			},
+			expectedPlain: map[string]string{
+				"HELLO": "goodbye",
+			},
+			expectedSecrets: map[string]string{
+				"CODES": "upupdowndownleftrightleftrightBA",
+			},
+			expectedErr: nil,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			env, err := ParseMap(tc.envValues)
+
+			if tc.expectedErr == nil {
+				assert.NilError(t, err)
+				assert.DeepEqual(t, env.Plain, tc.expectedPlain)
+				assert.DeepEqual(t, env.Secrets, tc.expectedSecrets)
+				return
+			}
+
+			assert.Assert(t, env == nil)
+			assert.ErrorContains(t, err, tc.expectedErr.Error())
+		})
+	}
 }
