@@ -137,3 +137,29 @@ func (p *lineParser) parse(envVars *EnvVars, l string) error {
 	envVars.Plain[k] = v
 	return nil
 }
+
+func ParseMap(envValues map[string]string) (*EnvVars, error) {
+	envVars := &EnvVars{
+		Plain:   make(map[string]string),
+		Secrets: make(map[string]string),
+	}
+
+	for k, v := range envValues {
+		// ignore empty values
+		if k == "" || v == emptySecret {
+			return nil, fmt.Errorf("invalid format %q: %q", k, v)
+		}
+
+		// check if value is encrypted secret
+		if secretRe.MatchString(v) {
+			// fill in secret value - replace template value with capture group "secretval"
+			envVars.Secrets[k] = secretRe.ReplaceAllString(v, "$secretval")
+			continue
+		}
+
+		// not a secret, fill in plain text value
+		envVars.Plain[k] = v
+	}
+
+	return envVars, nil
+}
