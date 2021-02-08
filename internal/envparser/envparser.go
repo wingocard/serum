@@ -113,7 +113,7 @@ func (p *lineParser) parse(envVars *EnvVars, l string) error {
 
 	// key is first index, value is second
 	k := strings.TrimSpace(splits[0])
-	v := strings.TrimSpace(splits[1])
+	v := splits[1]
 	if k == "" || v == emptySecret {
 		return fmt.Errorf("invalid format %q", l)
 	}

@@ -17,7 +17,7 @@ type testFS struct {
 
 func (tfs *testFS) Open(path string) (io.ReadCloser, error) {
 	if tfs.returnErr != nil {
-		return nil, errors.New("error in testFS")
+		return nil, tfs.returnErr
 	}
 
 	return tfs.returnVal, nil
@@ -125,6 +125,16 @@ func TestParseFile(t *testing.T) {
 			secrets: map[string]string{},
 		},
 		{
+			name: "whitespace in value",
+			envFile: `
+				CAKE=   is a lie
+			`,
+			plain: map[string]string{
+				"CAKE": "   is a lie",
+			},
+			secrets: map[string]string{},
+		},
+		{
 			name: "multiline variables",
 			envFile: `
 				PLAIN=plaintext
@@ -158,8 +168,8 @@ Dpig7Mu3Nqf3ywLsiXf1EiffYsrkUouWsjTnIYf800jl/JHHB0Gkn24td8aahE8v
 			env, err := parseFile(tfs, "")
 			assert.NilError(t, err)
 			assert.Assert(t, env != nil)
-			assert.DeepEqual(t, env.Plain, tc.plain)     //nolint:staticheck
-			assert.DeepEqual(t, env.Secrets, tc.secrets) //nolint:staticheck
+			assert.DeepEqual(t, env.Plain, tc.plain)     //nolint:staticcheck
+			assert.DeepEqual(t, env.Secrets, tc.secrets) //nolint:staticcheck
 		})
 	}
 }
