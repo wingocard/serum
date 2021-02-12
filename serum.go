@@ -1,3 +1,4 @@
+// Package serum allows you to inject secrets and environment variables at runtime.
 package serum
 
 import (
@@ -16,17 +17,34 @@ type Injector struct {
 	envVars        *envparser.EnvVars
 }
 
+// NewInjector creates a new injector loading from the provided loader
+// and applying the provided options.
+func NewInjector(loader Loader, options ...Option) (*Injector, error) {
+	ij := &Injector{}
+	if err := loader.Load(ij); err != nil {
+		return nil, fmt.Errorf("serum: %s", err)
+	}
+
+	for _, option := range options {
+		if err := option(ij); err != nil {
+			return nil, fmt.Errorf("serum: %s", err)
+		}
+	}
+
+	return ij, nil
+}
+
 // Inject will inject the loaded environment variables into the current running process' environment.
 // Any secret values found will attempt to be decrypted using the provided SecretProvider.
 // The presence of secrets with a nil SecretProvider will return an error.
-func (in *Injector) Inject(ctx context.Context) error {
-	if len(in.envVars.Secrets) > 0 && in.SecretProvider == nil {
+func (ij *Injector) Inject(ctx context.Context) error {
+	if len(ij.envVars.Secrets) > 0 && ij.SecretProvider == nil {
 		return fmt.Errorf("serum: error injecting env vars: secrets were loaded but the SecretProvider is nil")
 	}
 
 	// inject secrets
-	for k, v := range in.envVars.Secrets {
-		decrypted, err := in.SecretProvider.Decrypt(ctx, v)
+	for k, v := range ij.envVars.Secrets {
+		decrypted, err := ij.SecretProvider.Decrypt(ctx, v)
 		if err != nil {
 			return fmt.Errorf("serum: error decrypting secret %s: %s", v, err)
 		}
@@ -37,28 +55,10 @@ func (in *Injector) Inject(ctx context.Context) error {
 	}
 
 	// inject plain text vars
-	for k, v := range in.envVars.Plain {
+	for k, v := range ij.envVars.Plain {
 		if err := os.Setenv(k, v); err != nil {
 			return fmt.Errorf("serum: error setting env var %s: %s", k, err)
 		}
 	}
 	return nil
-}
-
-// Load will parse a .env file for key/value pairs and prepare them to be injected using the
-// Inject method.
-func (in *Injector) Load(path string) error {
-	envVars, err := envparser.ParseFile(path)
-	if err != nil {
-		return fmt.Errorf("serum: error loading env vars: %s", err)
-	}
-
-	in.envVars = envVars
-	return nil
-}
-
-// HasSecrets returns true if the injector contains encrypted
-// secrets, false otherwise.
-func (in *Injector) HasSecrets() bool {
-	return len(in.envVars.Secrets) > 0
 }

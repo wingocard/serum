@@ -1,3 +1,5 @@
+// Package envparser contains all functions for parsing environment variables and secrets
+// from files and the process' environment.
 package envparser
 
 import (
@@ -34,14 +36,14 @@ func (o *osFS) Open(path string) (io.ReadCloser, error) {
 }
 
 // EnvVars contains the plain text key value mappings as well as the encrypted secret key value mappings
-// parsed from an env file
+// parsed from an env file.
 type EnvVars struct {
 	Plain   map[string]string
 	Secrets map[string]string
 }
 
 // ParseFile parses a .env file at path and returns the key value
-// mappings for plain text variables and secret variables
+// mappings for plain text variables and secret variables.
 func ParseFile(path string) (*EnvVars, error) {
 	return parseFile(&osFS{}, path)
 }
@@ -136,4 +138,33 @@ func (p *lineParser) parse(envVars *EnvVars, l string) error {
 	// not a secret, fill in plain text value
 	envVars.Plain[k] = v
 	return nil
+}
+
+// ParseEnv parses the process' environment for the specified
+// keys and returns the key value mappings for plain text
+// variables and secret variables.
+func ParseEnv(keys []string) (*EnvVars, error) {
+	envVars := &EnvVars{
+		Plain:   make(map[string]string),
+		Secrets: make(map[string]string),
+	}
+
+	for _, k := range keys {
+		v, ok := os.LookupEnv(k)
+		if !ok {
+			return nil, fmt.Errorf("env variable %q not found", v)
+		}
+
+		// check if value is encrypted secret
+		if secretRe.MatchString(v) {
+			// fill in secret value - replace template value with capture group "secretval"
+			envVars.Secrets[k] = secretRe.ReplaceAllString(v, "$secretval")
+			continue
+		}
+
+		// not a secret, fill in plain text value
+		envVars.Plain[k] = v
+	}
+
+	return envVars, nil
 }

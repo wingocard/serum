@@ -1,3 +1,5 @@
+// Package gsmanager contains the secretprovider implementation
+// for GCP's secret manager.
 package gsmanager
 
 import (

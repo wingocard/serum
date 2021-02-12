@@ -1,3 +1,5 @@
+// Package secretprovider contains the interface for
+// creating a secret provider.
 package secretprovider
 
 import "context"

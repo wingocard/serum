@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/wingocard/serum/internal/envparser"
-
-	. "github.com/onsi/gomega"
+	"github.com/wingocard/serum/secretprovider"
+	"gotest.tools/v3/assert"
 )
 
 func cleanupEnv(env *envparser.EnvVars) error {
@@ -27,7 +27,7 @@ func cleanupEnv(env *envparser.EnvVars) error {
 }
 
 type testSecretProvider struct {
-	returnSecret string
+	returnSecret map[string]string
 	returnErr    error
 }
 
@@ -36,55 +36,194 @@ func (ts *testSecretProvider) Decrypt(ctx context.Context, secret string) (strin
 		return "", ts.returnErr
 	}
 
-	return ts.returnSecret, nil
+	return ts.returnSecret[secret], nil
 }
 
 func (ts *testSecretProvider) Close() error {
 	return nil
 }
 
-func TestInject(t *testing.T) {
-	g := NewWithT(t)
-
-	decryptedSecret := "my secret value"
-	envVars := &envparser.EnvVars{
-		Plain: map[string]string{
-			"PLAIN": "123456",
-		},
-		Secrets: map[string]string{
-			"SECRET": "superSecret",
-		},
-	}
-
-	t.Cleanup(func() {
-		if err := cleanupEnv(envVars); err != nil {
-			t.Errorf("error cleaning up env: %s", err)
+func TestNewInjector(t *testing.T) {
+	fakeLoader := func(ij *Injector) error {
+		ij.envVars = &envparser.EnvVars{
+			Plain: map[string]string{
+				"loaded": "plain",
+			},
+			Secrets: map[string]string{
+				"loaded": "secret",
+			},
 		}
-	})
+		return nil
+	}
+	errLoader := func(ij *Injector) error {
+		return errors.New("error loading")
+	}
 
-	ij := &Injector{
-		envVars: envVars,
-		SecretProvider: &testSecretProvider{
-			returnSecret: decryptedSecret,
+	optionZero := func(ij *Injector) error {
+		ij.envVars.Plain["zero"] = "zero"
+		return nil
+	}
+	optionOne := func(ij *Injector) error {
+		ij.envVars.Plain["one"] = "one"
+		return nil
+	}
+	errOption := func(ij *Injector) error {
+		return errors.New("option error")
+	}
+
+	tt := []struct {
+		name        string
+		loader      Loader
+		options     []Option
+		expectedEnv *envparser.EnvVars
+		expectedErr error
+	}{
+		{
+			name:        "error loading",
+			loader:      LoaderFunc(errLoader),
+			options:     nil,
+			expectedEnv: nil,
+			expectedErr: errors.New("error loading"),
+		},
+		{
+			name:    "one option",
+			loader:  LoaderFunc(fakeLoader),
+			options: []Option{optionZero},
+			expectedEnv: &envparser.EnvVars{
+				Plain: map[string]string{
+					"loaded": "plain",
+					"zero":   "zero",
+				},
+				Secrets: map[string]string{
+					"loaded": "secret",
+				},
+			},
+			expectedErr: nil,
+		},
+		{
+			name:    "multiple options",
+			loader:  LoaderFunc(fakeLoader),
+			options: []Option{optionZero, optionOne},
+			expectedEnv: &envparser.EnvVars{
+				Plain: map[string]string{
+					"loaded": "plain",
+					"zero":   "zero",
+					"one":    "one",
+				},
+				Secrets: map[string]string{
+					"loaded": "secret",
+				},
+			},
+			expectedErr: nil,
+		},
+		{
+			name:        "error in option",
+			loader:      LoaderFunc(fakeLoader),
+			options:     []Option{optionZero, errOption},
+			expectedErr: errors.New("option err"),
 		},
 	}
 
-	err := ij.Inject(context.Background())
-	g.Expect(err).To(BeNil())
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			ij, err := NewInjector(tc.loader, tc.options...)
 
-	for k, v := range envVars.Plain {
-		g.Expect(os.Getenv(k)).To(Equal(v))
-	}
-	for k := range envVars.Secrets {
-		g.Expect(os.Getenv(k)).To(Equal(decryptedSecret))
+			if tc.expectedErr == nil {
+				assert.NilError(t, err)
+				assert.DeepEqual(t, ij.envVars, tc.expectedEnv)
+				return
+			}
+
+			assert.Assert(t, ij == nil)
+			assert.ErrorContains(t, err, tc.expectedErr.Error())
+		})
 	}
 }
 
-func TestInjectEnvError(t *testing.T) {
+func TestInject(t *testing.T) {
 	tt := []struct {
-		name string
-		env  *envparser.EnvVars
+		name             string
+		env              *envparser.EnvVars
+		decryptedSecrets map[string]string
 	}{
+		{
+			name: "secrets",
+			env: &envparser.EnvVars{
+				Secrets: map[string]string{
+					"secret": "superSecret",
+				},
+			},
+			decryptedSecrets: map[string]string{
+				"superSecret": "super secret",
+			},
+		},
+		{
+			name: "plain",
+			env: &envparser.EnvVars{
+				Plain: map[string]string{
+					"gwyn": "lord of cinder",
+				},
+			},
+		},
+		{
+			name: "secrets and plain",
+			env: &envparser.EnvVars{
+				Plain: map[string]string{
+					"gwyn": "lord of cinder",
+				},
+				Secrets: map[string]string{
+					"sif": "greatWolf",
+				},
+			},
+			decryptedSecrets: map[string]string{
+				"greatWolf": "great wolf",
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			ij := &Injector{
+				envVars: tc.env,
+				SecretProvider: &testSecretProvider{
+					returnSecret: tc.decryptedSecrets,
+				},
+			}
+
+			err := ij.Inject(context.Background())
+			assert.NilError(t, err)
+
+			for k, v := range tc.env.Plain {
+				assert.Equal(t, os.Getenv(k), v)
+			}
+			for k, v := range tc.env.Secrets {
+				assert.Equal(t, os.Getenv(k), tc.decryptedSecrets[v])
+			}
+
+			if err := cleanupEnv(tc.env); err != nil {
+				t.Errorf("error cleaning up env: %s", err)
+			}
+		})
+	}
+}
+
+func TestInjectError(t *testing.T) {
+	tt := []struct {
+		name           string
+		env            *envparser.EnvVars
+		secretprovider secretprovider.SecretProvider
+		expectedErr    error
+	}{
+		{
+			name: "secrets with nil secret provider",
+			env: &envparser.EnvVars{
+				Secrets: map[string]string{
+					"samus": "aran",
+				},
+			},
+			secretprovider: nil,
+			expectedErr:    errors.New("secrets were loaded but the SecretProvider is nil"),
+		},
 		{
 			name: "plain set error",
 			env: &envparser.EnvVars{
@@ -92,6 +231,8 @@ func TestInjectEnvError(t *testing.T) {
 					"": "",
 				},
 			},
+			secretprovider: &testSecretProvider{},
+			expectedErr:    errors.New("serum: error setting env var"),
 		},
 		{
 			name: "secret set error",
@@ -100,103 +241,32 @@ func TestInjectEnvError(t *testing.T) {
 					"": "",
 				},
 			},
+			secretprovider: &testSecretProvider{},
+			expectedErr:    errors.New("serum: error setting env var"),
+		},
+		{
+			name: "decrypt error",
+			env: &envparser.EnvVars{
+				Secrets: map[string]string{
+					"solaire": "of astora",
+				},
+			},
+			secretprovider: &testSecretProvider{
+				returnErr: errors.New("decrypt failure"),
+			},
+			expectedErr: errors.New("error decrypting secret"),
 		},
 	}
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			g := NewWithT(t)
-
 			ij := &Injector{
-				envVars: tc.env,
-				SecretProvider: &testSecretProvider{
-					returnSecret: "",
-				},
+				envVars:        tc.env,
+				SecretProvider: tc.secretprovider,
 			}
 
 			err := ij.Inject(context.Background())
-			g.Expect(err).ToNot(BeNil())
-			g.Expect(err.Error()).To(ContainSubstring("serum: error setting env var"))
+			assert.ErrorContains(t, err, tc.expectedErr.Error())
 		})
-	}
-}
-
-func TestInjectNilSecretProviderError(t *testing.T) {
-	g := NewWithT(t)
-
-	envVars := &envparser.EnvVars{
-		Secrets: map[string]string{
-			"SECRET": "superSecret",
-		},
-	}
-
-	ij := &Injector{
-		envVars: envVars,
-	}
-
-	err := ij.Inject(context.Background())
-	g.Expect(err).ToNot(BeNil())
-	g.Expect(err.Error()).
-		To(ContainSubstring("serum: error injecting env vars: secrets were loaded but the SecretProvider is nil"))
-}
-
-func TestInjectDecryptError(t *testing.T) {
-	g := NewWithT(t)
-
-	envVars := &envparser.EnvVars{
-		Secrets: map[string]string{
-			"SECRET": "superSecret",
-		},
-	}
-
-	ij := &Injector{
-		envVars: envVars,
-		SecretProvider: &testSecretProvider{
-			returnErr: errors.New("decrypt failure"),
-		},
-	}
-
-	err := ij.Inject(context.Background())
-	g.Expect(err).ToNot(BeNil())
-	g.Expect(err.Error()).To(ContainSubstring("serum: error decrypting secret"))
-}
-
-func TestHasSecrets(t *testing.T) {
-	g := NewWithT(t)
-
-	tt := []struct {
-		name     string
-		env      *envparser.EnvVars
-		expected bool
-	}{
-		{
-			name: "no secrets",
-			env: &envparser.EnvVars{
-				Plain: map[string]string{
-					"PLAIN": "123456",
-				},
-			},
-			expected: false,
-		},
-		{
-			name: "with secrets",
-			env: &envparser.EnvVars{
-				Plain: map[string]string{
-					"PLAIN": "123456",
-				},
-				Secrets: map[string]string{
-					"SECRET": "superSecret111",
-				},
-			},
-			expected: true,
-		},
-	}
-
-	for _, tc := range tt {
-		ij := &Injector{
-			envVars: tc.env,
-		}
-
-		g.Expect(ij.HasSecrets()).To(Equal(tc.expected))
 	}
 }

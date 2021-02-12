@@ -46,31 +46,24 @@ import (
 )
 
 func main() {
-    //create a new secret provider
-    gsm, err := gsmanager.New(context.Background())
+    // create a new Injector
+    ij, err := serum.NewInjector(
+        serum.FromFile("path/to/file.env"),
+        serum.WithSecretProvider(gsmanager.New(context.Background())),
+    )
     if err != nil {
         //...
     }
-    //close SecretProvider connection when done
-    defer gsm.Close()
 
-    //create a new serum.Injector
-    //the SecretProvider is optional and can be left nil
-    ij := &serum.Injector{
-        SecretProvider: gsm
-    }
+    // close SecretProvider connection when done
+    defer ij.SecretProvider.Close()
 
-    //load a .env file
-    if err := ij.Load("path/to/file.env"); err != nil {
-        //...
-    }
-
-    //Inject the serum...
+    // inject the serum...
     if err := ij.Inject(context.Background()); err != nil {
         //...
     }
 
-    //access env vars
+    // access env vars
     ev := os.Getenv("myKey")
 }
 ```
@@ -79,3 +72,12 @@ func main() {
 
 Run all tests using the Makefile:
 `make tests`
+
+## Linting
+
+Code can be linted using golangci-lint:
+`make lint`
+
+> it can be installed using brew: `brew install golangci-lint`
+
+

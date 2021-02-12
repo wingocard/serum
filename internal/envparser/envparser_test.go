@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"os"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -158,8 +159,8 @@ Dpig7Mu3Nqf3ywLsiXf1EiffYsrkUouWsjTnIYf800jl/JHHB0Gkn24td8aahE8v
 			env, err := parseFile(tfs, "")
 			assert.NilError(t, err)
 			assert.Assert(t, env != nil)
-			assert.DeepEqual(t, env.Plain, tc.plain)     //nolint:staticheck
-			assert.DeepEqual(t, env.Secrets, tc.secrets) //nolint:staticheck
+			assert.DeepEqual(t, env.Plain, tc.plain)     //nolint:staticcheck
+			assert.DeepEqual(t, env.Secrets, tc.secrets) //nolint:staticcheck
 		})
 	}
 }
@@ -224,6 +225,100 @@ func TestParseFileScannerError(t *testing.T) {
 
 	env, err := parseFile(tfs, "")
 	assert.Assert(t, env == nil)
-	assert.Assert(t, err != nil)
 	assert.ErrorContains(t, err, "error parsing file")
+}
+
+func TestParseEnv(t *testing.T) {
+	clearEnv := func(t *testing.T, env map[string]string) {
+		for k := range env {
+			if err := os.Unsetenv(k); err != nil {
+				t.Fatalf("error clearing env: %s", err)
+			}
+		}
+	}
+
+	tt := []struct {
+		name        string
+		env         map[string]string
+		keys        []string
+		expectedEnv *EnvVars
+		expectedErr error
+	}{
+		{
+			name:        "env var not found",
+			keys:        []string{"one"},
+			expectedErr: errors.New("not found"),
+		},
+		{
+			name: "only plain",
+			env: map[string]string{
+				"one": "a",
+				"two": "b",
+			},
+			keys: []string{"one", "two"},
+			expectedEnv: &EnvVars{
+				Plain: map[string]string{
+					"one": "a",
+					"two": "b",
+				},
+				Secrets: map[string]string{},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "only secrets",
+			env: map[string]string{
+				"one": "!{a}",
+				"two": "!{b}",
+			},
+			keys: []string{"one", "two"},
+			expectedEnv: &EnvVars{
+				Plain: map[string]string{},
+				Secrets: map[string]string{
+					"one": "a",
+					"two": "b",
+				},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "plain and secrets",
+			env: map[string]string{
+				"one": "!{a}",
+				"two": "b",
+			},
+			keys: []string{"one", "two"},
+			expectedEnv: &EnvVars{
+				Plain: map[string]string{
+					"two": "b",
+				},
+				Secrets: map[string]string{
+					"one": "a",
+				},
+			},
+			expectedErr: nil,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			for k, v := range tc.env {
+				if err := os.Setenv(k, v); err != nil {
+					t.Fatalf("error setting env: %s", err)
+				}
+			}
+
+			env, err := ParseEnv(tc.keys)
+
+			if tc.expectedErr == nil {
+				assert.NilError(t, err)
+				assert.DeepEqual(t, env, tc.expectedEnv)
+				clearEnv(t, tc.env)
+				return
+			}
+
+			assert.ErrorContains(t, err, tc.expectedErr.Error())
+			clearEnv(t, tc.env)
+		})
+	}
 }
