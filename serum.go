@@ -13,7 +13,7 @@ import (
 // Injector injects environment variables into the current running process. Key/value pairs can
 // be read in from a .env file using the load method.
 type Injector struct {
-	SecretProvider secretprovider.SecretProvider
+	secretProvider secretprovider.SecretProvider
 	envVars        *envparser.EnvVars
 }
 
@@ -38,13 +38,13 @@ func NewInjector(loader Loader, options ...Option) (*Injector, error) {
 // Any secret values found will attempt to be decrypted using the provided SecretProvider.
 // The presence of secrets with a nil SecretProvider will return an error.
 func (ij *Injector) Inject(ctx context.Context) error {
-	if len(ij.envVars.Secrets) > 0 && ij.SecretProvider == nil {
+	if len(ij.envVars.Secrets) > 0 && ij.secretProvider == nil {
 		return fmt.Errorf("serum: error injecting env vars: secrets were loaded but the SecretProvider is nil")
 	}
 
 	// inject secrets
 	for k, v := range ij.envVars.Secrets {
-		decrypted, err := ij.SecretProvider.Decrypt(ctx, v)
+		decrypted, err := ij.secretProvider.Decrypt(ctx, v)
 		if err != nil {
 			return fmt.Errorf("serum: error decrypting secret %s: %s", v, err)
 		}
@@ -61,4 +61,13 @@ func (ij *Injector) Inject(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// Close will close any open clients in the Injector.
+func (ij *Injector) Close() error {
+	if ij.secretProvider == nil {
+		return nil
+	}
+
+	return ij.secretProvider.Close()
 }

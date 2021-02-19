@@ -49,14 +49,16 @@ func main() {
     // create a new Injector
     ij, err := serum.NewInjector(
         serum.FromFile("path/to/file.env"),
-        serum.WithSecretProvider(gsmanager.New(context.Background())),
+        serum.WithSecretProviderFunc(func() (secretprovider.SecretProvider, error) {
+            return gsmanager.New(context.Background()),
+        })
     )
     if err != nil {
         //...
     }
 
     // close SecretProvider connection when done
-    defer ij.SecretProvider.Close()
+    defer ij.Close()
 
     // inject the serum...
     if err := ij.Inject(context.Background()); err != nil {

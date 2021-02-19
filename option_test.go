@@ -12,28 +12,21 @@ func TestWithSecretProvider(t *testing.T) {
 	tt := []struct {
 		name              string
 		newSecretProvider func() (secretprovider.SecretProvider, error)
-		expectErr         error
+		expectedErr       error
 	}{
+		{
+			name: "error initilazing secret provider",
+			newSecretProvider: func() (secretprovider.SecretProvider, error) {
+				return nil, errors.New("bad secret provider")
+			},
+			expectedErr: errors.New("error initializing secret provider"),
+		},
 		{
 			name: "success",
 			newSecretProvider: func() (secretprovider.SecretProvider, error) {
 				return &testSecretProvider{}, nil
 			},
-			expectErr: nil,
-		},
-		{
-			name: "error",
-			newSecretProvider: func() (secretprovider.SecretProvider, error) {
-				return nil, errors.New("bad secret provider")
-			},
-			expectErr: errors.New("error initializing secret provider"),
-		},
-		{
-			name: "nil secret provider",
-			newSecretProvider: func() (secretprovider.SecretProvider, error) {
-				return nil, nil
-			},
-			expectErr: errors.New("secret provider cannot be nil"),
+			expectedErr: nil,
 		},
 	}
 
@@ -41,16 +34,16 @@ func TestWithSecretProvider(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ij := &Injector{}
 
-			err := WithSecretProvider(tc.newSecretProvider())(ij)
+			err := WithSecretProviderFunc(tc.newSecretProvider)(ij)
 
-			if tc.expectErr == nil {
+			if tc.expectedErr == nil {
 				assert.NilError(t, err)
-				assert.Assert(t, ij.SecretProvider != nil)
+				assert.Assert(t, ij.secretProvider != nil)
 				return
 			}
 
-			assert.Assert(t, ij.SecretProvider == nil)
-			assert.ErrorContains(t, err, tc.expectErr.Error())
+			assert.Assert(t, ij.secretProvider == nil)
+			assert.ErrorContains(t, err, tc.expectedErr.Error())
 		})
 	}
 }

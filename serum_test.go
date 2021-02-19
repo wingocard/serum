@@ -29,6 +29,7 @@ func cleanupEnv(env *envparser.EnvVars) error {
 type testSecretProvider struct {
 	returnSecret map[string]string
 	returnErr    error
+	closeHook    func()
 }
 
 func (ts *testSecretProvider) Decrypt(ctx context.Context, secret string) (string, error) {
@@ -40,6 +41,10 @@ func (ts *testSecretProvider) Decrypt(ctx context.Context, secret string) (strin
 }
 
 func (ts *testSecretProvider) Close() error {
+	if ts.closeHook != nil {
+		ts.closeHook()
+	}
+
 	return nil
 }
 
@@ -185,7 +190,7 @@ func TestInject(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ij := &Injector{
 				envVars: tc.env,
-				SecretProvider: &testSecretProvider{
+				secretProvider: &testSecretProvider{
 					returnSecret: tc.decryptedSecrets,
 				},
 			}
@@ -262,11 +267,54 @@ func TestInjectError(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ij := &Injector{
 				envVars:        tc.env,
-				SecretProvider: tc.secretprovider,
+				secretProvider: tc.secretprovider,
 			}
 
 			err := ij.Inject(context.Background())
 			assert.ErrorContains(t, err, tc.expectedErr.Error())
+		})
+	}
+}
+
+func TestClose(t *testing.T) {
+	tt := []struct {
+		name           string
+		secretprovider func(closeHook func()) secretprovider.SecretProvider
+		expectClose    bool
+	}{
+		{
+			name: "with secret provider",
+			secretprovider: func(closeHook func()) secretprovider.SecretProvider {
+				return &testSecretProvider{
+					closeHook: closeHook,
+				}
+			},
+			expectClose: true,
+		},
+		{
+			name: "with nil secret provider",
+			secretprovider: func(closeHook func()) secretprovider.SecretProvider {
+				return nil
+			},
+			expectClose: false,
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			closeCalled := false
+			closeHook := func() {
+				closeCalled = true
+			}
+
+			ij := &Injector{
+				secretProvider: tc.secretprovider(closeHook),
+			}
+
+			err := ij.Close()
+
+			assert.NilError(t, err)
+			assert.Equal(t, closeCalled, tc.expectClose)
 		})
 	}
 }
