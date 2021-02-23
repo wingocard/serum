@@ -152,7 +152,7 @@ func ParseEnv(keys []string) (*EnvVars, error) {
 	for _, k := range keys {
 		v, ok := os.LookupEnv(k)
 		if !ok {
-			return nil, fmt.Errorf("env variable %q not found", v)
+			return nil, fmt.Errorf("env variable %q not found", k)
 		}
 
 		// check if value is encrypted secret

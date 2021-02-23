@@ -247,7 +247,7 @@ func TestParseEnv(t *testing.T) {
 		{
 			name:        "env var not found",
 			keys:        []string{"one"},
-			expectedErr: errors.New("not found"),
+			expectedErr: errors.New("\"one\" not found"),
 		},
 		{
 			name: "only plain",
